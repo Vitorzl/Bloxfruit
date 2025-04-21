@@ -1,4 +1,3 @@
--- Zx Hub | Powered by Vitinho & IA | Edição 2025 -- Script GUI completo com AutoFarm, ESP, Stats, Teleport, Server Hop
 
 local ZxHub = Instance.new("ScreenGui") ZxHub.Name = "ZxHub" ZxHub.Parent = game.CoreGui
 
