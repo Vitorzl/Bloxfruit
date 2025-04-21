@@ -1,0 +1,155 @@
+
+local ZxHub = Instance.new("ScreenGui")
+ZxHub.Name = "ZxHub"
+ZxHub.Parent = game.CoreGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 300, 0, 400)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ZxHub
+
+local Title = Instance.new("TextLabel")
+Title.Text = "Zx Hub | Auto Farm 2025"
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Title.TextColor3 = Color3.fromRGB(0, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextScaled = true
+Title.Parent = MainFrame
+
+-- Função para criar os botões com animação
+local function createButton(text, posY, callback)
+    local btn = Instance.new("TextButton")
+    btn.Text = text
+    btn.Size = UDim2.new(0.9, 0, 0, 35)
+    btn.Position = UDim2.new(0.05, 0, 0, posY)
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.Gotham
+    btn.TextScaled = true
+    btn.Parent = MainFrame
+
+    -- Animação de botão
+    btn.MouseEnter:Connect(function()
+        btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    end)
+    btn.MouseLeave:Connect(function()
+        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    end)
+
+    btn.MouseButton1Click:Connect(function()
+        callback()
+        showNotification("Ação Executada: " .. text)
+    end)
+end
+
+-- Função para mostrar notificações
+function showNotification(message)
+    local notification = Instance.new("TextLabel")
+    notification.Text = message
+    notification.Size = UDim2.new(0, 300, 0, 40)
+    notification.Position = UDim2.new(0.5, -150, 0, 50)
+    notification.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    notification.TextColor3 = Color3.new(1, 1, 1)
+    notification.Font = Enum.Font.Gotham
+    notification.TextScaled = true
+    notification.Parent = ZxHub
+    wait(2)
+    notification:Destroy()
+end
+
+-- Auto Farm (Loop)
+local autoFarmEnabled = false
+function AutoFarm()
+    autoFarmEnabled = not autoFarmEnabled
+    print("[Zx Hub] Auto Farm " .. (autoFarmEnabled and "Ativado" or "Desativado"))
+    while autoFarmEnabled do
+        local char = game.Players.LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            -- Posição de exemplo (Bandit)
+            local targetPosition = CFrame.new(1045, 27, 1560)
+            char.HumanoidRootPart.CFrame = targetPosition
+
+            -- Verificando obstáculos (Exemplo de modo simplificado)
+            if game.Workspace:FindPartOnRay(Ray.new(char.HumanoidRootPart.Position, (targetPosition.Position - char.HumanoidRootPart.Position).unit * 5)) then
+                print("[Zx Hub] Obstáculo detectado! Ajustando...")
+                -- Mudar o alvo ou fazer algum ajuste
+            end
+        end
+        wait(1.5)
+    end
+end
+
+-- ESP Players
+function ESPPlayers()
+    for _, player in pairs(game.Players:GetPlayers()) do
+        if player ~= game.Players.LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            if not player.Character.Head:FindFirstChild("ZxESP") then
+                local esp = Instance.new("BillboardGui", player.Character.Head)
+                esp.Name = "ZxESP"
+                esp.Size = UDim2.new(0, 200, 0, 50)
+                esp.AlwaysOnTop = true
+                local text = Instance.new("TextLabel", esp)
+                text.Size = UDim2.new(1, 0, 1, 0)
+                text.Text = player.Name
+                text.TextColor3 = Color3.new(1, 0, 0)
+                text.BackgroundTransparency = 1
+                text.TextScaled = true
+            end
+        end
+    end
+end
+
+-- Auto Stats Upgrade
+function AutoStats()
+    local stats = {"Melee", "Defense", "Sword"}
+    for _, stat in pairs(stats) do
+        game:GetService("ReplicatedStorage").Remotes.CommF:InvokeServer("AddPoint", stat, 255)
+    end
+    print("[Zx Hub] Pontos aplicados em Melee, Defense e Sword")
+end
+
+-- Teleport Menu (Básico)
+function Teleport()
+    local locations = {
+        ["Início"] = Vector3.new(1059, 15, 1550),
+        ["Jungle"] = Vector3.new(-1448, 67, 11),
+        ["Pirate Island"] = Vector3.new(-1103, 13, 3896)
+    }
+    for name, pos in pairs(locations) do
+        print("[Zx Hub] TP para " .. name)
+        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(pos)
+        wait(1.5)
+    end
+end
+
+-- Server Hop (simples)
+function ServerHop()
+    print("[Zx Hub] Procurando outro servidor...")
+    local ts = game:GetService("TeleportService")
+    ts:Teleport(game.PlaceId, game.Players.LocalPlayer)
+end
+
+-- Proteção contra erros
+local success, errorMessage = pcall(function()
+    -- Botões principais
+    createButton("Auto Farm [Loop]", 50, AutoFarm)
+    createButton("ESP Players", 95, ESPPlayers)
+    createButton("Auto Stats", 140, AutoStats)
+    createButton("Teleport Ilhas", 185, Teleport)
+    createButton("Server Hop", 230, ServerHop)
+
+    -- Fechar a GUI com segurança
+    createButton("Fechar GUI", 275, function()
+        -- Parar AutoFarm se estiver ativo
+        autoFarmEnabled = false
+        ZxHub:Destroy()
+    end)
+end)
+
+if not success then
+    warn("Erro ao carregar o ZxHub: " .. errorMessage)
+    showNotification("Erro ao carregar o ZxHub!")
+end
