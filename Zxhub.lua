@@ -1,117 +1,202 @@
-local ZxHub = Instance.new("ScreenGui") 
-ZxHub.Name = "ZxHub" 
-ZxHub.Parent = game.CoreGui
+-- ##########################################################################################
+-- Configurações Iniciais
+-- ##########################################################################################
+getgenv().SelectedIsland = "Pirate Starter Island"  -- Ilha inicial
+getgenv().SelectedSea = "First Sea"  -- Sea inicial
+getgenv().ESPEnabled = true  -- Ativar ESP
+getgenv().AutoFarmEnabled = false  -- Ativar AutoFarm
+getgenv().AutoBossEnabled = false  -- Ativar Auto Boss
 
--- Espera a GUI carregar completamente
-ZxHub:WaitForChild("ScreenGui")
-
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 320, 0, 450)
-MainFrame.Position = UDim2.new(0.5, -160, 0.5, -225)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ZxHub
-
-local Title = Instance.new("TextLabel")
-Title.Text = "Zx Hub | Edição 2025"
-Title.Size = UDim2.new(1, 0, 0, 45)
-Title.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-Title.TextColor3 = Color3.new(1, 1, 1)
-Title.Font = Enum.Font.GothamBold
-Title.TextScaled = true
-Title.Parent = MainFrame
-
-local function createButton(text, posY, callback)
-    local btn = Instance.new("TextButton")
-    btn.Text = text
-    btn.Size = UDim2.new(0.9, 0, 0, 38)
-    btn.Position = UDim2.new(0.05, 0, 0, posY)
-    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.Font = Enum.Font.Gotham
-    btn.TextScaled = true
-    btn.Parent = MainFrame
-    btn.MouseButton1Click:Connect(callback)
-end
-
--- Auto Farm Inteligente
-local autoFarm = false
-function SmartAutoFarm()
-    autoFarm = not autoFarm
-    print("[ZxHub] AutoFarm " .. (autoFarm and "Ativado" or "Desativado"))
-
-    while autoFarm do
-        local player = game.Players.LocalPlayer
-        local char = player.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            for _, npc in pairs(workspace.Enemies:GetChildren()) do
-                if npc:FindFirstChild("Humanoid") and npc:FindFirstChild("HumanoidRootPart") then
-                    repeat
-                        char.HumanoidRootPart.CFrame = npc.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
-                        game:GetService("VirtualInputManager"):SendKeyEvent(true, "Z", false, game)
-                        wait(0.2)
-                    until npc.Humanoid.Health <= 0 or not autoFarm
-                end
-            end
-        end
-        wait(1)
-    end
-end
-
--- ESP Atualizado
-function ESPPlayers()
-    for _, player in pairs(game.Players:GetPlayers()) do
-        if player ~= game.Players.LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-            if not player.Character.Head:FindFirstChild("ZxESP") then
-                local esp = Instance.new("BillboardGui", player.Character.Head)
-                esp.Name = "ZxESP"
-                esp.Size = UDim2.new(0, 200, 0, 50)
-                esp.AlwaysOnTop = true
-                local text = Instance.new("TextLabel", esp)
-                text.Size = UDim2.new(1, 0, 1, 0)
-                text.Text = player.Name
-                text.TextColor3 = Color3.fromRGB(255, 50, 50)
-                text.BackgroundTransparency = 1
-                text.TextScaled = true
-            end
-        end
-    end
-end
-
--- Auto Stats
-function AutoStats()
-    local stats = {"Melee", "Defense", "Sword"}
-    for _, stat in pairs(stats) do
-        game:GetService("ReplicatedStorage").Remotes.CommF:InvokeServer("AddPoint", stat, 255)
-    end
-    print("[Zx Hub] Pontos aplicados!")
-end
-
--- Teleport com Menu
-function Teleport()
-    local locations = { 
-        ["Inicio"] = Vector3.new(1059, 15, 1550), 
-        ["Jungle"] = Vector3.new(-1448, 67, 11), 
-        ["Pirate Island"] = Vector3.new(-1103, 13, 3896) 
+-- ##########################################################################################
+-- Mapeamento das Ilhas e suas Coordenadas
+-- ##########################################################################################
+local Islands = {
+    ["First Sea"] = {
+        ["Pirate Starter Island"] = CFrame.new(200, 10, 300),
+        ["Moss Island"] = CFrame.new(100, 10, 200),
+        ["Jungle Island"] = CFrame.new(500, 10, 600),
+        -- Adicione mais ilhas conforme necessário
+    },
+    ["Second Sea"] = {
+        ["Castle on the Sea"] = CFrame.new(1500, 10, 1600),
+        -- Adicione mais ilhas conforme necessário
+    },
+    ["Third Sea"] = {
+        ["Haunted Castle"] = CFrame.new(5500, 90, 5600),
+        -- Adicione mais ilhas conforme necessário
     }
-    for name, pos in pairs(locations) do
-        print("[Zx Hub] Indo para " .. name)
-        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(pos)
-        wait(1.5)
+}
+
+-- ##########################################################################################
+-- Funções de Teleporte e Proteção de Kick
+-- ##########################################################################################
+function TeleportToIsland()
+    local player = game.Players.LocalPlayer
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    
+    -- Pega a coordenada da ilha selecionada
+    local islandPos = Islands[getgenv().SelectedSea][getgenv().SelectedIsland]
+    
+    -- Verifica se a coordenada da ilha é válida
+    if islandPos then
+        -- Verifica se a posição é válida (fora do mapa)
+        if islandPos.Position.X > 10000 or islandPos.Position.Y > 500 or islandPos.Position.Z > 10000 then
+            -- Kicka o jogador se a posição for inválida
+            game:GetService("Players").LocalPlayer:Kick("Posição inválida para teleporte!")
+        else
+            -- Teleporta o jogador para a posição da ilha
+            hrp.CFrame = islandPos
+        end
+    else
+        -- Caso a ilha não exista ou não tenha coordenada, kicka o jogador
+        game:GetService("Players").LocalPlayer:Kick("Ilha não encontrada!")
     end
 end
 
--- Server Hop
-function ServerHop()
-    print("[Zx Hub] Pulando para outro servidor...")
-    local ts = game:GetService("TeleportService")
-    ts:Teleport(game.PlaceId, game.Players.LocalPlayer)
+-- ##########################################################################################
+-- Funções de ESP (Espiar objetos e Bosses)
+-- ##########################################################################################
+function ESP()
+    local player = game.Players.LocalPlayer
+    local char = player.Character or player.CharacterAdded:Wait()
+
+    -- Adiciona a ESP para os Bosses e jogadores
+    for _, v in ipairs(workspace:GetChildren()) do
+        if v:IsA("Model") and v:FindFirstChild("Humanoid") then
+            if v.Humanoid.Health > 0 then
+                local box = Instance.new("BoxHandleAdornment")
+                box.Adornee = v:FindFirstChild("Head") or v:FindFirstChild("HumanoidRootPart")
+                box.Size = Vector3.new(3, 5, 3)
+                box.Color3 = Color3.fromRGB(255, 0, 0) -- Vermelho para Bosses
+                box.Transparency = 0.5
+                box.Parent = game.CoreGui
+            end
+        end
+    end
 end
 
--- Criando os botões
-createButton("Auto Farm Inteligente", 60, SmartAutoFarm)
-createButton("ESP Players", 110, ESPPlayers)
-createButton("Auto Stats", 160, AutoStats)
-createButton("Teleport Ilhas", 210, Teleport)
-createButton("Server Hop", 260, ServerHop)
-createButton("Fechar GUI", 310, function() ZxHub:Destroy() end)
+-- ##########################################################################################
+-- Funções de Auto Farm
+-- ##########################################################################################
+function AutoFarm()
+    -- Aqui você coloca a lógica para farmar automaticamente, atacando inimigos, etc.
+    -- Exemplo: Automatizar ataques a NPCs ou coleta de recursos
+end
+
+-- ##########################################################################################
+-- Funções de Auto Boss
+-- ##########################################################################################
+function AutoBoss()
+    -- Lógica para derrotar Bosses automaticamente
+    -- Exemplo: Encontrar Bosses no mapa e derrotá-los automaticamente
+end
+
+-- ##########################################################################################
+-- Funções da GUI (Interface Gráfica)
+-- ##########################################################################################
+local Window = loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+local IslandTab = Window:MakeTab({
+    Name = "Teleportar Ilhas",
+    Icon = "rbxassetid://113422439338527",  -- Ícone atualizado
+    PremiumOnly = false
+})
+
+-- Dropdown para escolher o Sea
+IslandTab:AddDropdown({
+    Name = "Escolha o Sea",
+    Default = "First Sea",
+    Options = {"First Sea", "Second Sea", "Third Sea"},
+    Callback = function(Value)
+        getgenv().SelectedSea = Value
+    end
+})
+
+-- Dropdown para escolher a Ilha
+IslandTab:AddDropdown({
+    Name = "Escolha a Ilha",
+    Default = "Pirate Starter Island",
+    Options = {
+        "Pirate Starter Island", "Moss Island", "Jungle Island", "Desert Island", "Sky Island", 
+        "Frozen Village", "Little Garden", "Alabasta", "Sabaody Archipelago", "Enies Lobby", 
+        "Marineford", "Skypiea", "Impel Down", -- Adicione mais ilhas conforme necessário
+    },
+    Callback = function(Value)
+        getgenv().SelectedIsland = Value
+    end
+})
+
+-- Botão para Teleportar
+IslandTab:AddButton({
+    Name = "Teletransportar",
+    Callback = function()
+        TeleportToIsland()
+    end
+})
+
+-- Criando a aba para AutoFarm e AutoBoss
+local FarmTab = Window:MakeTab({
+    Name = "Farma e Bosses",
+    Icon = "rbxassetid://113422439338527",  -- Ícone atualizado
+    PremiumOnly = false
+})
+
+-- Toggle para Ativar/Desativar Auto Farm
+FarmTab:AddToggle({
+    Name = "Ativar Auto Farm",
+    Default = false,
+    Callback = function(Value)
+        getgenv().AutoFarmEnabled = Value
+        if Value then
+            AutoFarm()
+        end
+    end
+})
+
+-- Toggle para Ativar/Desativar Auto Boss
+FarmTab:AddToggle({
+    Name = "Ativar Auto Boss",
+    Default = false,
+    Callback = function(Value)
+        getgenv().AutoBossEnabled = Value
+        if Value then
+            AutoBoss()
+        end
+    end
+})
+
+-- Toggle para Ativar/Desativar ESP
+FarmTab:AddToggle({
+    Name = "Ativar ESP",
+    Default = true,
+    Callback = function(Value)
+        getgenv().ESPEnabled = Value
+        if Value then
+            ESP()
+        end
+    end
+})
+
+-- Botão para Desativar Todos os Recursos
+FarmTab:AddButton({
+    Name = "Desativar Todos",
+    Callback = function()
+        -- Desativa todos os recursos
+        getgenv().AutoFarmEnabled = false
+        getgenv().AutoBossEnabled = false
+        getgenv().ESPEnabled = false
+    end
+})
+
+-- Botão para Teleportar para o Spawn
+FarmTab:AddButton({
+    Name = "Teleportar para Spawn",
+    Callback = function()
+        -- Exemplo de teleporte para o spawn
+        local spawnPosition = CFrame.new(0, 100, 0)  -- Mude para as coordenadas do spawn
+        local player = game.Players.LocalPlayer
+        local char = player.Character or player.CharacterAdded:Wait()
+        local hrp = char:WaitForChild("HumanoidRootPart")
+        hrp.CFrame = spawnPosition
+    end
+})
